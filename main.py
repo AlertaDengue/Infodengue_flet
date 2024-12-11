@@ -3,6 +3,7 @@ import flet as ft
 
 async def main(page: ft.Page):
     page.title = "Infodengue"
+    page.update()
 
 app = ft.app(
     target=main,
