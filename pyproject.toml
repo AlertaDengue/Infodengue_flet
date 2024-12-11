@@ -4,4 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "flet>=0.25.1",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "aider-chat>=0.68.0",
+]
