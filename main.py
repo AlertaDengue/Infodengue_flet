@@ -88,10 +88,9 @@ def run():
     ft.app(
         target=main,
         assets_dir="assets",
-        upload_dir="data"
+        # upload_dir="data"
     )
 
 
 if __name__ == "__main__":
-    pass
     run()
