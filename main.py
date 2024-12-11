@@ -1,43 +1,69 @@
 import flet as ft
 
+def view_sua_cidade(page: ft.Page):
+    return ft.View(
+        controls=[
+            ft.Text("Sua cidade", size=30),
+            # Add more controls specific to "Sua cidade"
+        ],
+        scroll=ft.ScrollMode.AUTO
+    )
+
+def view_brasil(page: ft.Page):
+    return ft.View(
+        controls=[
+            ft.Text("Brasil", size=30),
+            # Add more controls specific to "Brasil"
+        ],
+        scroll=ft.ScrollMode.AUTO
+    )
+
+def view_forecasts(page: ft.Page):
+    return ft.View(
+        controls=[
+            ft.Text("Forecasts", size=30),
+            # Add more controls specific to "Forecasts"
+        ],
+        scroll=ft.ScrollMode.AUTO
+    )
 
 async def main(page: ft.Page):
     page.title = "Infodengue"
     def switch_view(index):
         if index == 0:
             page.views.clear()
-            page.views.append(view_sua_cidade())
+            page.views.append(
+            ft.View(
+                route="sua_cidade",
+                controls=[
+                    ft.Text("Sua cidade", size=30),
+                    page.navigation_bar
+                ]
+            ))
         elif index == 1:
             page.views.clear()
-            page.views.append(view_brasil())
+            page.views.append(
+            ft.View(
+                route="brasil",
+                controls=[
+                    ft.Text("Brasil", size=30),
+                    page.navigation_bar
+                ]
+            )
+            )
         elif index == 2:
             page.views.clear()
-            page.views.append(view_forecasts())
+            page.views.append(
+            ft.View(
+                route="forecasts",
+                controls=[
+                    ft.Text("Forecasts", size=30),
+                    page.navigation_bar
+                ]
+            )
+            )
         page.update()
 
-    def view_sua_cidade():
-        return ft.View(
-            controls=[
-                ft.Text("Sua cidade", size=30),
-                # Add more controls specific to "Sua cidade"
-            ]
-        )
-
-    def view_brasil():
-        return ft.View(
-            controls=[
-                ft.Text("Brasil", size=30),
-                # Add more controls specific to "Brasil"
-            ]
-        )
-
-    def view_forecasts():
-        return ft.View(
-            controls=[
-                ft.Text("Forecasts", size=30),
-                # Add more controls specific to "Forecasts"
-            ]
-        )
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
