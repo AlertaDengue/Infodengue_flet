@@ -4,6 +4,7 @@ def view_sua_cidade(page: ft.Page):
     return ft.View(
         controls=[
             ft.Text("Sua cidade", size=30),
+            page.navigation_bar
             # Add more controls specific to "Sua cidade"
         ],
         scroll=ft.ScrollMode.AUTO
@@ -13,6 +14,7 @@ def view_brasil(page: ft.Page):
     return ft.View(
         controls=[
             ft.Text("Brasil", size=30),
+            page.navigation_bar
             # Add more controls specific to "Brasil"
         ],
         scroll=ft.ScrollMode.AUTO
@@ -22,6 +24,7 @@ def view_forecasts(page: ft.Page):
     return ft.View(
         controls=[
             ft.Text("Forecasts", size=30),
+            page.navigation_bar
             # Add more controls specific to "Forecasts"
         ],
         scroll=ft.ScrollMode.AUTO
@@ -33,43 +36,27 @@ async def main(page: ft.Page):
         if index == 0:
             page.views.clear()
             page.views.append(
-            ft.View(
-                route="sua_cidade",
-                controls=[
-                    ft.Text("Sua cidade", size=30),
-                    page.navigation_bar
-                ]
-            ))
+            view_sua_cidade(page)
+            )
         elif index == 1:
             page.views.clear()
             page.views.append(
-            ft.View(
-                route="brasil",
-                controls=[
-                    ft.Text("Brasil", size=30),
-                    page.navigation_bar
-                ]
+            view_brasil(page)
             )
-            )
+
         elif index == 2:
             page.views.clear()
             page.views.append(
-            ft.View(
-                route="forecasts",
-                controls=[
-                    ft.Text("Forecasts", size=30),
-                    page.navigation_bar
-                ]
-            )
+            view_forecasts(page)
             )
         page.update()
 
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
-            ft.NavigationDestination(icon=ft.icons.HOME, label="Sua cidade"),
-            ft.NavigationDestination(icon=ft.icons.PUBLIC, label="Brasil"),
-            ft.NavigationDestination(icon=ft.icons.WB_SUNNY, label="Forecasts"),
+            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Sua cidade"),
+            ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Brasil"),
+            ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY, label="Forecasts"),
         ],
         on_change=lambda e: switch_view(e.control.selected_index)
     )
