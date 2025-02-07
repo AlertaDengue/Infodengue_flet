@@ -32,6 +32,11 @@ def view_forecasts(page: ft.Page):
 
 async def main(page: ft.Page):
     page.title = "Infodengue"
+    page.theme = ft.Theme(
+        color_scheme_seed=ft.Colors.YELLOW,
+    )
+    page.update()
+
     def switch_view(index):
         if index == 0:
             page.views.clear()
@@ -62,20 +67,18 @@ async def main(page: ft.Page):
     )
     switch_view(0)  # Initialize with the first view
     page.update()
-
-app = ft.app(
-    target=main,
-    export_asgi_app=True,
-    assets_dir="assets",
-    # upload_dir="data"
-)
+#
+# app = ft.app(
+#     target=main,
+#     export_asgi_app=True,
+#     assets_dir="assets"
+# )
 
 
 def run():
     ft.app(
         target=main,
         assets_dir="assets",
-        # upload_dir="data"
     )
 
 

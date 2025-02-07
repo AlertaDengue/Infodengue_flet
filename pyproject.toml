@@ -5,7 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "flet>=0.25.1",
+    "flet[all]>=0.25.1",
+    "geojson>=3.2.0",
+    "geopandas>=1.0.1",
+    "owslib>=0.32.1",
     "plotly>=5.24.1",
     "requests>=2.32.3",
 ]
@@ -13,4 +16,5 @@ dependencies = [
 [tool.uv]
 dev-dependencies = [
     "aider-chat>=0.68.0",
+    "pytest>=8.3.4",
 ]
