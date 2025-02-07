@@ -1,4 +1,5 @@
 import flet as ft
+from geodata.wfs import Infodengue
 
 def view_sua_cidade(page: ft.Page):
     return ft.View(
@@ -11,11 +12,22 @@ def view_sua_cidade(page: ft.Page):
     )
 
 def view_brasil(page: ft.Page):
+    # Initialize Infodengue and get Brasil map
+    info_dengue = Infodengue()
+    brasil_map = info_dengue.get_feature("casos_dengue_brasil_mun")
+    
+    # Create WebView to display the map
+    map_view = ft.WebView(
+        url="http://info.dengue.mat.br/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=casos_dengue_brasil_mun&styles=&bbox=-73.9872354,-33.7683777,-34.7299934,5.24448639&width=768&height=768&srs=EPSG:4326&format=application/openlayers",
+        width=800,
+        height=600,
+    )
+
     return ft.View(
         controls=[
-            ft.Text("Brasil", size=30),
+            ft.Text("Mapa do Brasil", size=30, weight=ft.FontWeight.BOLD),
+            map_view,
             page.navigation_bar
-            # Add more controls specific to "Brasil"
         ],
         scroll=ft.ScrollMode.AUTO
     )
