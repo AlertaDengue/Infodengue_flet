@@ -4,7 +4,7 @@ import geojson
 from pyproj import CRS
 from owslib.wfs import WebFeatureService
 
-class Infodengue:
+class InfodengueMaps:
     def __init__(self):
         self.wfs = WebFeatureService(
             url="http://info.dengue.mat.br/geoserver/wfs",

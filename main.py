@@ -1,6 +1,11 @@
 import flet as ft
-from geodata.wfs import Infodengue
-import plotly.graph_objects as go
+from mosqlient import get_infodengue
+import datetime
+from geodata.wfs import InfodengueMaps
+import geopandas as gpd
+import plotly.express as px
+from flet.plotly_chart import PlotlyChart
+
 
 def view_sua_cidade(page: ft.Page):
     return ft.View(
@@ -12,17 +17,22 @@ def view_sua_cidade(page: ft.Page):
         scroll=ft.ScrollMode.AUTO
     )
 
+
 def view_brasil(page: ft.Page):
     # Initialize Infodengue and get Brasil map
-    info_dengue = Infodengue()
-    brasil_map = info_dengue.get_feature("casos_dengue_brasil_mun")
-    
-    # Create WebView to display the map
-    map_view = ft.WebView(
-        url="http://info.dengue.mat.br/geoserver/wms?service=WMS&version=1.1.0&request=GetMap&layers=casos_dengue_brasil_mun&styles=&bbox=-73.9872354,-33.7683777,-34.7299934,5.24448639&width=768&height=768&srs=EPSG:4326&format=application/openlayers",
-        width=800,
-        height=600,
+    info_dengue = InfodengueMaps()
+    casos_por_estado = get_infodengue(
+        start_date='2022-12-30',
+        end_date='2023-01-30',
+        disease='dengue',
+        uf='RJ'
     )
+    map_geojson = info_dengue.get_feature("RJ_distritos_2022")
+    # gdf = gpd.GeoDataFrame.from_features(map_geojson)
+    fig = px.choropleth(casos_por_estado, geojson=map_geojson, color='casos', locations='distrito')
+
+    # Create WebView to display the map
+    map_view = PlotlyChart(fig, height=500, width=500)
 
     return ft.View(
         controls=[
@@ -33,6 +43,7 @@ def view_brasil(page: ft.Page):
         scroll=ft.ScrollMode.AUTO
     )
 
+
 def view_forecasts(page: ft.Page):
     return ft.View(
         controls=[
@@ -42,6 +53,7 @@ def view_forecasts(page: ft.Page):
         ],
         scroll=ft.ScrollMode.AUTO
     )
+
 
 async def main(page: ft.Page):
     page.title = "Infodengue"
@@ -54,21 +66,20 @@ async def main(page: ft.Page):
         if index == 0:
             page.views.clear()
             page.views.append(
-            view_sua_cidade(page)
+                view_sua_cidade(page)
             )
         elif index == 1:
             page.views.clear()
             page.views.append(
-            view_brasil(page)
+                view_brasil(page)
             )
 
         elif index == 2:
             page.views.clear()
             page.views.append(
-            view_forecasts(page)
+                view_forecasts(page)
             )
         page.update()
-
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
@@ -80,6 +91,8 @@ async def main(page: ft.Page):
     )
     switch_view(0)  # Initialize with the first view
     page.update()
+
+
 #
 # app = ft.app(
 #     target=main,
