@@ -1,5 +1,6 @@
 import flet as ft
 from geodata.wfs import Infodengue
+import plotly.graph_objects as go
 
 def view_sua_cidade(page: ft.Page):
     return ft.View(
