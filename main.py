@@ -12,6 +12,7 @@ from flet.matplotlib_chart import  MatplotlibChart
 
 def view_sua_cidade(page: ft.Page):
     return ft.View(
+        appbar=page.appbar,
         controls=[
             ft.Text("Sua cidade", size=30),
             page.navigation_bar
@@ -43,6 +44,7 @@ def view_state(page: ft.Page):
     map_view = MatplotlibChart(fig, expand=True)
 
     return ft.View(
+        appbar=page.appbar,
         controls=[
             ft.Text("Mapa do Estado", size=30, weight=ft.FontWeight.BOLD),
             map_view,
@@ -54,6 +56,7 @@ def view_state(page: ft.Page):
 
 def view_forecasts(page: ft.Page):
     return ft.View(
+        appbar=page.appbar,
         controls=[
             ft.Text("Forecasts", size=30),
             page.navigation_bar
@@ -72,6 +75,19 @@ async def main(page: ft.Page):
     page.title = "Infodengue"
     page.theme = ft.Theme(
         color_scheme_seed=ft.Colors.YELLOW,
+    )
+    
+    # Create the app bar
+    page.appbar = ft.AppBar(
+        leading=ft.Icon(ft.icons.CORONAVIRUS_OUTLINED),
+        leading_width=40,
+        title=ft.Text("InfoDengue"),
+        center_title=False,
+        bgcolor=ft.colors.SURFACE_VARIANT,
+        actions=[
+            ft.IconButton(ft.icons.SETTINGS),
+            ft.IconButton(ft.icons.HELP_OUTLINE),
+        ],
     )
     start_map_server(page)
     page.update()
