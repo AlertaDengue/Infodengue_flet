@@ -23,29 +23,58 @@ def view_sua_cidade(page: ft.Page):
 
 
 def view_state(page: ft.Page):
-    # Initialize Infodengue and get Brasil map
-    casos = get_infodengue(
-        start_date='2022-12-30',
-        end_date='2023-01-30',
-        disease='dengue',
-        uf=page.selected_state
+    loading_view = ft.Column(
+        controls=[
+            ft.ProgressRing(),
+            ft.Text("Carregando dados do estado...", size=20),
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
     )
-    casos = casos.groupby(['municipio_geocodigo','municipio_nome']).sum()
-    map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
-    gdf = gpd.GeoDataFrame.from_features(map_geojson)
-    gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
-    mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
+
+    if page.is_loading:
+        return ft.View(
+            appbar=page.appbar,
+            controls=[
+                ft.Container(
+                    content=loading_view,
+                    alignment=ft.alignment.center,
+                    expand=True
+                ),
+                page.navigation_bar
+            ],
+        )
+
+    # Check if data is cached
+    if page.selected_state not in page.state_data_cache:
+        page.is_loading = True
+        page.update()
+        
+        # Initialize Infodengue and get Brasil map
+        casos = get_infodengue(
+            start_date='2022-12-30',
+            end_date='2023-01-30',
+            disease='dengue',
+            uf=page.selected_state
+        )
+        casos = casos.groupby(['municipio_geocodigo','municipio_nome']).sum()
+        map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
+        gdf = gpd.GeoDataFrame.from_features(map_geojson)
+        gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
+        mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
+        
+        # Cache the processed data
+        page.state_data_cache[page.selected_state] = mapa
+        page.is_loading = False
+    else:
+        mapa = page.state_data_cache[page.selected_state]
+
     fig, ax = plt.subplots()
     mapa.plot(ax=ax,
               column='casos',
               scheme='natural_breaks',
               legend=True,
-              # legend_kwds={'bbox_to_anchor': (1.31, 1)}
               )
     ax.set_axis_off()
-    # fig = px.choropleth(mapa, geojson=mapa.geometry, color='casos', locations=mapa.index, hover_name='municipio_nome')
-    # fig.update_geos(fitbounds="locations", visible=False)
-    # Create WebView to display the map
     map_view = MatplotlibChart(fig, expand=True)
 
     return ft.View(
@@ -86,6 +115,10 @@ async def main(page: ft.Page):
         color_scheme_seed=ft.Colors.BLUE,
     )
     
+    # Initialize cache and loading state
+    page.state_data_cache = {}
+    page.is_loading = False
+    
     # Create state dropdown
     state_dropdown = ft.Dropdown(
         width=100,
@@ -100,9 +133,10 @@ async def main(page: ft.Page):
     )
     
     def change_state(new_state):
-        page.selected_state = new_state
-        if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
-            switch_view(1)  # Refresh state view
+        if new_state != page.selected_state:
+            page.selected_state = new_state
+            if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
+                switch_view(1)  # Refresh state view
     
     # Create the app bar
     page.appbar = ft.AppBar(
