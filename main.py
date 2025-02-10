@@ -79,14 +79,14 @@ async def main(page: ft.Page):
     
     # Create the app bar
     page.appbar = ft.AppBar(
-        leading=ft.Icon(ft.icons.CORONAVIRUS_OUTLINED),
+        leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
         leading_width=40,
         title=ft.Text("InfoDengue"),
         center_title=False,
         bgcolor=ft.colors.SURFACE_VARIANT,
         actions=[
-            ft.IconButton(ft.icons.SETTINGS),
-            ft.IconButton(ft.icons.HELP_OUTLINE),
+            ft.IconButton(ft.Icons.SETTINGS),
+            ft.IconButton(ft.Icons.HELP_OUTLINE),
         ],
     )
     start_map_server(page)
