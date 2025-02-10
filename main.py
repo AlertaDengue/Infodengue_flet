@@ -46,11 +46,16 @@ def view_state(page: ft.Page):
     return ft.View(
         appbar=page.appbar,
         controls=[
-            ft.Text("Mapa do Estado", size=30, weight=ft.FontWeight.BOLD),
-            map_view,
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Mapa do Estado", size=30, weight=ft.FontWeight.BOLD),
+                    map_view,
+                ]),
+                scroll=ft.ScrollMode.ALWAYS,
+                expand=True
+            ),
             page.navigation_bar
         ],
-        scroll=ft.ScrollMode.AUTO
     )
 
 
