@@ -28,10 +28,10 @@ def view_state(page: ft.Page):
         start_date='2022-12-30',
         end_date='2023-01-30',
         disease='dengue',
-        uf='RJ'
+        uf=page.selected_state
     )
     casos = casos.groupby(['municipio_geocodigo','municipio_nome']).sum()
-    map_geojson = page.infodengue_maps.get_feature("RJ_distritos_CD2022")
+    map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
     gdf = gpd.GeoDataFrame.from_features(map_geojson)
     gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
     mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
@@ -81,6 +81,24 @@ async def main(page: ft.Page):
         color_scheme_seed=ft.Colors.BLUE,
     )
     
+    # Create state dropdown
+    state_dropdown = ft.Dropdown(
+        width=100,
+        options=[
+            ft.dropdown.Option("RJ"),
+            ft.dropdown.Option("SP"),
+            ft.dropdown.Option("MG"),
+            ft.dropdown.Option("ES"),
+        ],
+        value="RJ",
+        on_change=lambda e: change_state(e.data),
+    )
+    
+    def change_state(new_state):
+        page.selected_state = new_state
+        if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
+            switch_view(1)  # Refresh state view
+    
     # Create the app bar
     page.appbar = ft.AppBar(
         leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
@@ -89,10 +107,14 @@ async def main(page: ft.Page):
         center_title=False,
         bgcolor=ft.Colors.BLUE_GREY,
         actions=[
+            state_dropdown,
             ft.IconButton(ft.Icons.SETTINGS),
             ft.IconButton(ft.Icons.HELP_OUTLINE),
         ],
     )
+    
+    # Initialize selected state
+    page.selected_state = "RJ"
     start_map_server(page)
     page.update()
 
