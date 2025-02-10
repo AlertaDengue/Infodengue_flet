@@ -51,7 +51,6 @@ def view_state(page: ft.Page):
                     ft.Text("Mapa do Estado", size=30, weight=ft.FontWeight.BOLD),
                     map_view,
                 ]),
-                scroll=ft.ScrollMode.ALWAYS,
                 expand=True
             ),
             page.navigation_bar
@@ -79,7 +78,7 @@ def start_map_server(page: ft.Page):
 async def main(page: ft.Page):
     page.title = "Infodengue"
     page.theme = ft.Theme(
-        color_scheme_seed=ft.Colors.YELLOW,
+        color_scheme_seed=ft.Colors.BLUE,
     )
     
     # Create the app bar
@@ -88,7 +87,7 @@ async def main(page: ft.Page):
         leading_width=40,
         title=ft.Text("InfoDengue"),
         center_title=False,
-        bgcolor=ft.colors.SURFACE_VARIANT,
+        bgcolor=ft.Colors.BLUE_GREY,
         actions=[
             ft.IconButton(ft.Icons.SETTINGS),
             ft.IconButton(ft.Icons.HELP_OUTLINE),
