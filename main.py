@@ -36,7 +36,12 @@ def view_state(page: ft.Page):
     gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
     mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
     fig, ax = plt.subplots()
-    mapa.plot(ax=ax,column='casos', scheme='natural_breaks',legend=True, legend_kwds={'bbox_to_anchor': (1.31, 1)})
+    mapa.plot(ax=ax,
+              column='casos',
+              scheme='natural_breaks',
+              legend=True,
+              # legend_kwds={'bbox_to_anchor': (1.31, 1)}
+              )
     ax.set_axis_off()
     # fig = px.choropleth(mapa, geojson=mapa.geometry, color='casos', locations=mapa.index, hover_name='municipio_nome')
     # fig.update_geos(fitbounds="locations", visible=False)
