@@ -1,6 +1,7 @@
 import flet as ft
 import pandas as pd
 from mosqlient import get_infodengue
+from typing import List, Optional
 import datetime
 from geodata.wfs import InfodengueMaps
 import geopandas as gpd
@@ -135,9 +136,73 @@ async def main(page: ft.Page):
     def change_state(new_state):
         if new_state != page.selected_state:
             page.selected_state = new_state
+            city_search.load_cities_data(new_state)
             if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
                 switch_view(1)  # Refresh state view
     
+    # Create city search autocomplete
+    class CitySearch(ft.UserControl):
+        def __init__(self, page: ft.Page):
+            super().__init__()
+            self.page = page
+            self.search_field = ft.TextField(
+                label="Buscar cidade...",
+                prefix_icon=ft.icons.SEARCH,
+                on_change=self.update_suggestions,
+                width=300
+            )
+            self.suggestions = ft.ListView(
+                spacing=10,
+                padding=20,
+                width=300,
+                height=200,
+                visible=False
+            )
+            self.cities_data = pd.DataFrame()
+
+        def load_cities_data(self, state: str):
+            """Load cities data for the selected state"""
+            if state not in self.page.state_data_cache:
+                return
+            self.cities_data = self.page.state_data_cache[state][['municipio_nome', 'municipio_geocodigo']].drop_duplicates()
+            
+        async def update_suggestions(self, e):
+            query = self.search_field.value.lower()
+            if len(query) > 2:
+                matches = self.cities_data[
+                    self.cities_data['municipio_nome'].str.lower().str.contains(query)
+                ].head(10)
+                
+                self.suggestions.controls = [
+                    ft.ListTile(
+                        title=ft.Text(row['municipio_nome']),
+                        on_click=lambda e, code=row['municipio_geocodigo']: self.select_city(e, code),
+                    )
+                    for _, row in matches.iterrows()
+                ]
+                self.suggestions.visible = True
+            else:
+                self.suggestions.visible = False
+            await self.update_async()
+
+        async def select_city(self, e, geocode: int):
+            self.search_field.value = ""
+            self.suggestions.visible = False
+            await self.update_async()
+            # TODO: Handle city selection
+            print(f"Selected city geocode: {geocode}")
+
+        def build(self):
+            return ft.Column(
+                [
+                    self.search_field,
+                    self.suggestions
+                ]
+            )
+
+    # Initialize city search
+    city_search = CitySearch(page)
+
     # Create the app bar
     page.appbar = ft.AppBar(
         leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
@@ -146,6 +211,7 @@ async def main(page: ft.Page):
         center_title=False,
         bgcolor=ft.Colors.BLUE_GREY,
         actions=[
+            city_search,
             state_dropdown,
             ft.IconButton(ft.Icons.SETTINGS),
             ft.IconButton(ft.Icons.HELP_OUTLINE),
