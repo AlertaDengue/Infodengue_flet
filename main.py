@@ -1,3 +1,4 @@
+from typing import List
 import flet as ft
 import pandas as pd
 import re
