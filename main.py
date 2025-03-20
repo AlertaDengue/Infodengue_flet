@@ -3,7 +3,7 @@ import pandas as pd
 from mosqlient import get_infodengue
 from typing import List, Optional
 import datetime
-from geodata.wfs import InfodengueMaps
+from geodata.features import InfodengueMaps, STATES
 import geopandas as gpd
 import plotly.express as px
 import matplotlib.pyplot as plt
@@ -105,7 +105,9 @@ def view_forecasts(page: ft.Page):
     )
 
 def start_map_server(page: ft.Page):
-    # Initialize Infodengue and get Brasil map
+    """
+    Start the Infodengue map server client class and get the Brasil map
+    """
     page.infodengue_maps = InfodengueMaps()
 
 
@@ -122,14 +124,9 @@ async def main(page: ft.Page):
     
     # Create state dropdown
     state_dropdown = ft.Dropdown(
-        width=100,
-        options=[
-            ft.dropdown.Option("RJ"),
-            ft.dropdown.Option("SP"),
-            ft.dropdown.Option("MG"),
-            ft.dropdown.Option("ES"),
-        ],
-        value="RJ",
+        width=200,
+        options=[ft.dropdown.Option(f"{state} - {name}") for state, name in STATES.items()],
+        value="RJ - Rio de Janeiro",
         on_change=lambda e: change_state(e.data),
     )
     
@@ -141,83 +138,13 @@ async def main(page: ft.Page):
                 switch_view(1)  # Refresh state view
     
     # Create city search autocomplete
-    class CitySearch(ft.UserControl):
-        def __init__(self, page: ft.Page):
-            super().__init__()
-            self.page = page
-            self.search_field = ft.TextField(
-                label="Buscar cidade...",
-                prefix_icon=ft.icons.SEARCH,
-                on_change=self.update_suggestions,
-                width=300
-            )
-            self.suggestions = ft.ListView(
-                spacing=10,
-                padding=20,
-                width=300,
-                height=200,
-                visible=False
-            )
-            self.cities_data = pd.DataFrame()
 
-        def load_cities_data(self, state: str):
-            """Load cities data for the selected state"""
-            if state not in self.page.state_data_cache:
-                return
-            self.cities_data = self.page.state_data_cache[state][['municipio_nome', 'municipio_geocodigo']].drop_duplicates()
-            
-        async def update_suggestions(self, e):
-            query = self.search_field.value.lower()
-            if len(query) > 2:
-                matches = self.cities_data[
-                    self.cities_data['municipio_nome'].str.lower().str.contains(query)
-                ].head(10)
-                
-                self.suggestions.controls = [
-                    ft.ListTile(
-                        title=ft.Text(row['municipio_nome']),
-                        on_click=lambda e, code=row['municipio_geocodigo']: self.select_city(e, code),
-                    )
-                    for _, row in matches.iterrows()
-                ]
-                self.suggestions.visible = True
-            else:
-                self.suggestions.visible = False
-            await self.update_async()
-
-        async def select_city(self, e, geocode: int):
-            self.search_field.value = ""
-            self.suggestions.visible = False
-            await self.update_async()
-            # TODO: Handle city selection
-            print(f"Selected city geocode: {geocode}")
-
-        def build(self):
-            return ft.Column(
-                [
-                    self.search_field,
-                    self.suggestions
-                ]
-            )
 
     # Initialize city search
     city_search = CitySearch(page)
 
-    # Create the app bar
-    page.appbar = ft.AppBar(
-        leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
-        leading_width=40,
-        title=ft.Text("InfoDengue"),
-        center_title=False,
-        bgcolor=ft.Colors.BLUE_GREY,
-        actions=[
-            city_search,
-            state_dropdown,
-            ft.IconButton(ft.Icons.SETTINGS),
-            ft.IconButton(ft.Icons.HELP_OUTLINE),
-        ],
-    )
-    
+    await create_appbar(city_search, page, state_dropdown)
+
     # Initialize selected state
     page.selected_state = "RJ"
     start_map_server(page)
@@ -253,6 +180,83 @@ async def main(page: ft.Page):
     switch_view(0)  # Initialize with the first view
     page.update()
 
+
+async def create_appbar(city_search, page, state_dropdown):
+    # Create the app bar
+    page.appbar = ft.AppBar(
+        leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
+        leading_width=40,
+        title=ft.Text("InfoDengue"),
+        center_title=False,
+        bgcolor=ft.Colors.BLUE_GREY,
+        actions=[
+            city_search,
+            state_dropdown,
+            ft.IconButton(ft.Icons.SETTINGS),
+            ft.IconButton(ft.Icons.HELP_OUTLINE),
+        ],
+    )
+
+
+class CitySearch(ft.TextField):
+    def __init__(self, page: ft.Page):
+        super().__init__()
+        self.page = page
+        self.search_field = ft.TextField(
+            label="Buscar cidade...",
+            prefix_icon=ft.Icons.SEARCH,
+            on_change=self.update_suggestions,
+            width=300
+        )
+        self.suggestions = ft.ListView(
+            spacing=10,
+            padding=20,
+            width=300,
+            height=200,
+            visible=False
+        )
+        self.cities_data = pd.DataFrame()
+
+    def load_cities_data(self, state: str):
+        """Load cities data for the selected state"""
+        if state not in self.page.state_data_cache:
+            return
+        self.cities_data = self.page.state_data_cache[state][
+            ['municipio_nome', 'municipio_geocodigo']].drop_duplicates()
+
+    async def update_suggestions(self, e):
+        query = self.search_field.value.lower()
+        if len(query) > 2:
+            matches = self.cities_data[
+                self.cities_data['municipio_nome'].str.lower().str.contains(query)
+            ].head(10)
+
+            self.suggestions.controls = [
+                ft.ListTile(
+                    title=ft.Text(row['municipio_nome']),
+                    on_click=lambda e, code=row['municipio_geocodigo']: self.select_city(e, code),
+                )
+                for _, row in matches.iterrows()
+            ]
+            self.suggestions.visible = True
+        else:
+            self.suggestions.visible = False
+        await self.update_async()
+
+    async def select_city(self, e, geocode: int):
+        self.search_field.value = ""
+        self.suggestions.visible = False
+        await self.update_async()
+        # TODO: Handle city selection
+        print(f"Selected city geocode: {geocode}")
+
+    def build(self):
+        return ft.Column(
+            [
+                self.search_field,
+                self.suggestions
+            ]
+        )
 
 #
 # app = ft.app(
