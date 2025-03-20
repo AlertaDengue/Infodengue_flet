@@ -1,5 +1,22 @@
 import flet as ft
 import pandas as pd
+import re
+
+def find_substring_matches(query: str, strings: List[str], max_results: int = 10) -> List[str]:
+    """Find strings that contain the query as a substring (case insensitive)"""
+    if not query:
+        return []
+    
+    # Create a regex pattern that matches the query anywhere in the string
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+    
+    # Find all matches and sort by position of match (earlier matches get higher priority)
+    matches = sorted(
+        (s for s in strings if pattern.search(s)),
+        key=lambda s: pattern.search(s).start()
+    )
+    
+    return matches[:max_results]
 from mosqlient import get_infodengue
 from typing import List, Optional
 import datetime
@@ -225,18 +242,25 @@ class CitySearch(ft.TextField):
             ['municipio_nome', 'municipio_geocodigo']].drop_duplicates()
 
     async def update_suggestions(self, e):
-        query = self.search_field.value.lower()
-        if len(query) > 2:
-            matches = self.cities_data[
-                self.cities_data['municipio_nome'].str.lower().str.contains(query)
-            ].head(10)
-
+        query = self.search_field.value
+        if len(query) > 1:  # Reduced minimum characters to 2
+            # Get city names as list
+            city_names = self.cities_data['municipio_nome'].tolist()
+            
+            # Find matches using our substring search
+            matches = find_substring_matches(query, city_names)
+            
+            # Filter the full dataframe to get the matching rows
+            matched_data = self.cities_data[
+                self.cities_data['municipio_nome'].isin(matches)
+            ]
+            
             self.suggestions.controls = [
                 ft.ListTile(
                     title=ft.Text(row['municipio_nome']),
                     on_click=lambda e, code=row['municipio_geocodigo']: self.select_city(e, code),
                 )
-                for _, row in matches.iterrows()
+                for _, row in matched_data.iterrows()
             ]
             self.suggestions.visible = True
         else:
