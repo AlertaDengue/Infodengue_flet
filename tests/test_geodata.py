@@ -1,4 +1,4 @@
-from geodata.wfs import InfodengueMaps
+from geodata.features import InfodengueMaps
 from owslib.wfs import WebFeatureService
 
 def test_Infodengue():

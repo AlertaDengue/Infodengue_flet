@@ -2,22 +2,6 @@ from typing import List
 import flet as ft
 import pandas as pd
 import re
-
-def find_substring_matches(query: str, strings: List[str], max_results: int = 10) -> List[str]:
-    """Find strings that contain the query as a substring (case insensitive)"""
-    if not query:
-        return []
-    
-    # Create a regex pattern that matches the query anywhere in the string
-    pattern = re.compile(re.escape(query), re.IGNORECASE)
-    
-    # Find all matches and sort by position of match (earlier matches get higher priority)
-    matches = sorted(
-        (s for s in strings if pattern.search(s)),
-        key=lambda s: pattern.search(s).start()
-    )
-    
-    return matches[:max_results]
 from mosqlient import get_infodengue
 from typing import List, Optional
 import datetime
@@ -29,6 +13,34 @@ from flet.plotly_chart import PlotlyChart
 from flet.matplotlib_chart import  MatplotlibChart
 
 
+def find_substring_matches(query: str, strings: List[str], max_results: int = 10) -> List[str]:
+    """Find strings that contain the query as a substring (case insensitive)"""
+    if not query:
+        return []
+
+    # Create a regex pattern that matches the query anywhere in the string
+    pattern = re.compile(re.escape(query), re.IGNORECASE)
+
+    # Find all matches and sort by position of match (earlier matches get higher priority)
+    matches = sorted(
+        (s for s in strings if pattern.search(s)),
+        key=lambda s: pattern.search(s).start()
+    )
+
+    return matches[:max_results]
+
+def find_city(page, city_name):
+    matches = find_substring_matches(city_name, page.city_names)
+    if matches:
+        page.city_search.controls = [ft.ListTile(title=m, on_click=select_city(page,m), data=m) for m in matches]
+        city_code = page.infodengue_maps.cities[matches[0]]
+        page.city_search.value = city_name
+        page.update()
+
+def select_city(page, city_name):
+    page.selected_city = city_name
+    # page.city_search.close_view()
+    page.update()
 def view_sua_cidade(page: ft.Page):
     return ft.View(
         appbar=page.appbar,
@@ -42,48 +54,14 @@ def view_sua_cidade(page: ft.Page):
 
 
 def view_state(page: ft.Page):
-    loading_view = ft.Column(
-        controls=[
-            ft.ProgressRing(),
-            ft.Text("Carregando dados do estado...", size=20),
-        ],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    )
-
-    if page.is_loading:
-        return ft.View(
-            appbar=page.appbar,
-            controls=[
-                ft.Container(
-                    content=loading_view,
-                    alignment=ft.alignment.center,
-                    expand=True
-                ),
-                page.navigation_bar
-            ],
-        )
-
     # Check if data is cached
     if page.selected_state not in page.state_data_cache:
-        page.is_loading = True
-        page.update()
-        
-        # Initialize Infodengue and get Brasil map
-        casos = get_infodengue(
-            start_date='2022-12-30',
-            end_date='2023-01-30',
-            disease='dengue',
-            uf=page.selected_state
-        )
-        casos = casos.groupby(['municipio_geocodigo','municipio_nome']).sum()
-        map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
-        gdf = gpd.GeoDataFrame.from_features(map_geojson)
-        gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
-        mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
-        
+
+        mapa = get_state_data(page)
+
         # Cache the processed data
         page.state_data_cache[page.selected_state] = mapa
-        page.is_loading = False
+
     else:
         mapa = page.state_data_cache[page.selected_state]
 
@@ -111,6 +89,23 @@ def view_state(page: ft.Page):
     )
 
 
+def get_state_data(page):
+    # Initialize Infodengue and get Brasil map
+    casos = get_infodengue(
+        start_date='2022-12-30',
+        end_date='2023-01-30',
+        disease='dengue',
+        uf=page.selected_state
+    )
+    casos = casos.groupby(['municipio_geocodigo', 'municipio_nome']).sum()
+    map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
+    page.city_names = page.infodengue_maps.get_city_names()
+    gdf = gpd.GeoDataFrame.from_features(map_geojson)
+    gdf['CD_MUN'] = gdf['CD_MUN'].astype(int)
+    mapa = pd.merge(gdf, casos.reset_index(), left_on='CD_MUN', right_on='municipio_geocodigo', how='left')
+    return mapa
+
+
 def view_forecasts(page: ft.Page):
     return ft.View(
         appbar=page.appbar,
@@ -127,6 +122,9 @@ def start_map_server(page: ft.Page):
     Start the Infodengue map server client class and get the Brasil map
     """
     page.infodengue_maps = InfodengueMaps()
+    page.infodengue_maps.get_state_geojson(page.selected_state)
+    page.city_names = page.infodengue_maps.get_city_names()
+
 
 
 
@@ -135,10 +133,23 @@ async def main(page: ft.Page):
     page.theme = ft.Theme(
         color_scheme_seed=ft.Colors.BLUE,
     )
-    
-    # Initialize cache and loading state
+    # page.pr = ft.ProgressRing(
+    #     width=15,
+    #     height=5,
+    #     value=None,
+    #
+    #     color=ft.Colors.BLUE,
+    # )
+    # page.add(page.pr)
+    page.update()
+
+    # Initialize selected state
+    page.selected_state = "RJ"
     page.state_data_cache = {}
-    page.is_loading = False
+    page.is_loading = True
+    start_map_server(page)
+    # page.pr.value=1.0
+    page.update()
     
     # Create state dropdown
     state_dropdown = ft.Dropdown(
@@ -149,24 +160,33 @@ async def main(page: ft.Page):
     )
     
     def change_state(new_state):
+        new_state = new_state.split(" - ")[0]
         if new_state != page.selected_state:
+            state_geojson = page.infodengue_maps.get_state_geojson(new_state)
             page.selected_state = new_state
-            city_search.load_cities_data(new_state)
+            page.city_names = page.infodengue_maps.get_city_names()
             if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
                 switch_view(1)  # Refresh state view
     
-    # Create city search autocomplete
+
+    def handle_tap(e):
+        city_search.open_view()
+
+    # Initialize city search bar
+    city_search = ft.SearchBar(
+        # label="Cidade",
+        bar_hint_text="Digite o nome da cidade",
+        # icon=ft.Icons.SEARCH,
+        width=300,
+        on_submit=lambda e: find_city(page, e.data),
+        on_change=lambda e: find_city(page, e.data),
+        on_tap = handle_tap,
+        controls = [ft.ListTile(title=ft.Text(f"{city}"), on_click=lambda e: select_city(page, city) ) for city in page.city_names]
+    )
+
+    create_appbar(page, city_search, state_dropdown)
 
 
-    # Initialize city search
-    city_search = CitySearch(page)
-
-    await create_appbar(city_search, page, state_dropdown)
-
-    # Initialize selected state
-    page.selected_state = "RJ"
-    start_map_server(page)
-    page.update()
 
     def switch_view(index):
         if index == 0:
@@ -191,7 +211,7 @@ async def main(page: ft.Page):
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Sua cidade"),
             ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Seu Estado"),
-            ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY, label="Forecasts"),
+            ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY, label="Previsões"),
         ],
         on_change=lambda e: switch_view(e.control.selected_index)
     )
@@ -199,7 +219,7 @@ async def main(page: ft.Page):
     page.update()
 
 
-async def create_appbar(city_search, page, state_dropdown):
+def create_appbar(page, city_search, state_dropdown):
     # Create the app bar
     page.appbar = ft.AppBar(
         leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
@@ -216,72 +236,6 @@ async def create_appbar(city_search, page, state_dropdown):
     )
 
 
-class CitySearch(ft.TextField):
-    def __init__(self, page: ft.Page):
-        super().__init__()
-        self.page = page
-        self.search_field = ft.TextField(
-            label="Buscar cidade...",
-            prefix_icon=ft.Icons.SEARCH,
-            on_change=self.update_suggestions,
-            width=300
-        )
-        self.suggestions = ft.ListView(
-            spacing=10,
-            padding=20,
-            width=300,
-            height=200,
-            visible=False
-        )
-        self.cities_data = pd.DataFrame()
-
-    def load_cities_data(self, state: str):
-        """Load cities data for the selected state"""
-        if state not in self.page.state_data_cache:
-            return
-        self.cities_data = self.page.state_data_cache[state][
-            ['municipio_nome', 'municipio_geocodigo']].drop_duplicates()
-
-    async def update_suggestions(self, e):
-        query = self.search_field.value
-        if len(query) > 1:  # Reduced minimum characters to 2
-            # Get city names as list
-            city_names = self.cities_data['municipio_nome'].tolist()
-            
-            # Find matches using our substring search
-            matches = find_substring_matches(query, city_names)
-            
-            # Filter the full dataframe to get the matching rows
-            matched_data = self.cities_data[
-                self.cities_data['municipio_nome'].isin(matches)
-            ]
-            
-            self.suggestions.controls = [
-                ft.ListTile(
-                    title=ft.Text(row['municipio_nome']),
-                    on_click=lambda e, code=row['municipio_geocodigo']: self.select_city(e, code),
-                )
-                for _, row in matched_data.iterrows()
-            ]
-            self.suggestions.visible = True
-        else:
-            self.suggestions.visible = False
-        await self.update_async()
-
-    async def select_city(self, e, geocode: int):
-        self.search_field.value = ""
-        self.suggestions.visible = False
-        await self.update_async()
-        # TODO: Handle city selection
-        print(f"Selected city geocode: {geocode}")
-
-    def build(self):
-        return ft.Column(
-            [
-                self.search_field,
-                self.suggestions
-            ]
-        )
 
 #
 # app = ft.app(
