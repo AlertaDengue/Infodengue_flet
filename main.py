@@ -41,6 +41,28 @@ def select_city(page, city_name):
     page.selected_city = city_name
     # page.city_search.close_view()
     page.update()
+
+def view_main(page: ft.Page):
+    return ft.View(
+        appbar=page.appbar,
+        controls=[
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Sua Cidade", size=30, weight=ft.FontWeight.BOLD),
+                ]),
+                expand=True
+            ),
+            ft.Container(
+                content=ft.Column([
+                    ft.Text("Seu Estado", size=30, weight=ft.FontWeight.BOLD),
+                ]),
+                expand=True
+            ),
+            page.navigation_bar
+            # Add more controls specific to "Infodengue"
+        ],
+        scroll=ft.ScrollMode.AUTO
+    )
 def view_sua_cidade(page: ft.Page):
     return ft.View(
         appbar=page.appbar,
@@ -106,18 +128,8 @@ def get_state_data(page):
     return mapa
 
 
-def view_forecasts(page: ft.Page):
-    return ft.View(
-        appbar=page.appbar,
-        controls=[
-            ft.Text("Forecasts", size=30),
-            page.navigation_bar
-            # Add more controls specific to "Forecasts"
-        ],
-        scroll=ft.ScrollMode.AUTO
-    )
 
-def start_map_server(page: ft.Page):
+async def start_map_server(page: ft.Page):
     """
     Start the Infodengue map server client class and get the Brasil map
     """
@@ -133,13 +145,8 @@ async def main(page: ft.Page):
     page.theme = ft.Theme(
         color_scheme_seed=ft.Colors.BLUE,
     )
-    # page.pr = ft.ProgressRing(
-    #     width=15,
-    #     height=5,
-    #     value=None,
-    #
-    #     color=ft.Colors.BLUE,
-    # )
+    page.city_names = []
+    # page.pr = ft.ProgressBar(value=0.0, visible=True, width=300, height=20) # Initialize progress bar
     # page.add(page.pr)
     page.update()
 
@@ -147,13 +154,15 @@ async def main(page: ft.Page):
     page.selected_state = "RJ"
     page.state_data_cache = {}
     page.is_loading = True
-    start_map_server(page)
+    # await start_map_server(page)
     # page.pr.value=1.0
     page.update()
     
     # Create state dropdown
     state_dropdown = ft.Dropdown(
         width=200,
+        menu_height=10,
+        dense=True,
         options=[ft.dropdown.Option(f"{state} - {name}") for state, name in STATES.items()],
         value="RJ - Rio de Janeiro",
         on_change=lambda e: change_state(e.data),
@@ -189,29 +198,24 @@ async def main(page: ft.Page):
 
 
     def switch_view(index):
-        if index == 0:
+        if index == 0:  # Main page
             page.views.clear()
             page.views.append(
-                view_sua_cidade(page)
+                view_main(page)
             )
-        elif index == 1:
+        elif index == 1:  # Settings
             page.views.clear()
             page.views.append(
                 view_state(page)
             )
 
-        elif index == 2:
-            page.views.clear()
-            page.views.append(
-                view_forecasts(page)
-            )
+
         page.update()
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Sua cidade"),
-            ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Seu Estado"),
-            ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY, label="Previsões"),
+            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Infodengue Report"),
+            ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Configurações"),
         ],
         on_change=lambda e: switch_view(e.control.selected_index)
     )
