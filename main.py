@@ -179,10 +179,10 @@ async def main(page: ft.Page):
     
 
     def handle_tap(e):
-        city_search.open_view()
+        page.city_search.open_view()
 
     # Initialize city search bar
-    city_search = ft.SearchBar(
+    page.city_search = ft.SearchBar(
         # label="Cidade",
         bar_hint_text="Digite o nome da cidade",
         # icon=ft.Icons.SEARCH,
@@ -193,7 +193,7 @@ async def main(page: ft.Page):
         controls = [ft.ListTile(title=ft.Text(f"{city}"), on_click=lambda e: select_city(page, city) ) for city in page.city_names]
     )
 
-    create_appbar(page, city_search, state_dropdown)
+    create_appbar(page, page.city_search, state_dropdown)
 
 
 
