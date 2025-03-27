@@ -43,18 +43,30 @@ def select_city(page, city_name):
     page.update()
 
 def view_main(page: ft.Page):
+    state_progress = ft.ProgressBar(value=None, visible=False, width=300, height=20)
+    city_progress = ft.ProgressBar(value=None, visible=False, width=300, height=20)
     return ft.View(
         appbar=page.appbar,
         controls=[
             ft.Container(
+                border=ft.border.all(1, "blue"),
+                padding=20,
                 content=ft.Column([
                     ft.Text("Sua Cidade", size=30, weight=ft.FontWeight.BOLD),
+                    city_progress,
                 ]),
                 expand=True
             ),
             ft.Container(
-                content=ft.Column([
-                    ft.Text("Seu Estado", size=30, weight=ft.FontWeight.BOLD),
+                border=ft.border.all(1, "blue"),
+                padding=20,
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Seu Estado", size=30, weight=ft.FontWeight.BOLD),
+                        state_progress,
+                        get_state_case_map(page, state_progress)
+
+
                 ]),
                 expand=True
             ),
@@ -75,40 +87,30 @@ def view_sua_cidade(page: ft.Page):
     )
 
 
-def view_state(page: ft.Page):
+
+
+
+def get_state_case_map(page, progress):
     # Check if data is cached
     if page.selected_state not in page.state_data_cache:
-
+        progress.visible = True
         mapa = get_state_data(page)
-
         # Cache the processed data
         page.state_data_cache[page.selected_state] = mapa
-
     else:
         mapa = page.state_data_cache[page.selected_state]
-
     fig, ax = plt.subplots()
     mapa.plot(ax=ax,
               column='casos',
               scheme='natural_breaks',
               legend=True,
+              legend_kwds={'loc': 'upper center', 'bbox_to_anchor': (0.5, -0.05), 'ncol': 2},
               )
     ax.set_axis_off()
-    map_view = MatplotlibChart(fig, expand=True)
-
-    return ft.View(
-        appbar=page.appbar,
-        controls=[
-            ft.Container(
-                content=ft.Column([
-                    ft.Text("Mapa do Estado", size=30, weight=ft.FontWeight.BOLD),
-                    map_view,
-                ]),
-                expand=True
-            ),
-            page.navigation_bar
-        ],
-    )
+    fig.tight_layout()
+    map_view = MatplotlibChart(fig, expand=True, transparent=True, isolated=True)
+    progress.visible = False
+    return map_view
 
 
 def get_state_data(page):
@@ -146,16 +148,16 @@ async def main(page: ft.Page):
         color_scheme_seed=ft.Colors.BLUE,
     )
     page.city_names = []
-    # page.pr = ft.ProgressBar(value=0.0, visible=True, width=300, height=20) # Initialize progress bar
-    # page.add(page.pr)
+    page.pr = ft.ProgressBar(value=None, visible=True, width=300, height=20) # Initialize progress bar
+    page.add(page.pr)
     page.update()
 
     # Initialize selected state
     page.selected_state = "RJ"
     page.state_data_cache = {}
     page.is_loading = True
-    # await start_map_server(page)
-    # page.pr.value=1.0
+    await start_map_server(page)
+    page.pr.visible = False
     page.update()
     
     # Create state dropdown
@@ -175,7 +177,7 @@ async def main(page: ft.Page):
             page.selected_state = new_state
             page.city_names = page.infodengue_maps.get_city_names()
             if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
-                switch_view(1)  # Refresh state view
+                switch_view(0)  # Refresh main view
     
 
     def handle_tap(e):
@@ -206,7 +208,7 @@ async def main(page: ft.Page):
         elif index == 1:  # Settings
             page.views.clear()
             page.views.append(
-                view_state(page)
+                view_sua_cidade()
             )
 
 
