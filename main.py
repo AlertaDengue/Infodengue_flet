@@ -11,6 +11,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 from flet.plotly_chart import PlotlyChart
 from flet.matplotlib_chart import  MatplotlibChart
+from datetime import date
 
 
 def find_substring_matches(query: str, strings: List[str], max_results: int = 10) -> List[str]:
@@ -35,12 +36,13 @@ def find_city(page, city_name):
         page.city_search.controls = [ft.ListTile(title=m, on_click=select_city(page,m), data=m) for m in matches]
         city_code = page.infodengue_maps.cities[matches[0]]
         page.city_search.value = city_name
+        page.selected_city = city_name
         page.update()
 
-def select_city(page, city_name):
-    page.selected_city = city_name
-    # page.city_search.close_view()
-    page.update()
+# def select_city(page, city_name):
+#     page.selected_city = city_name
+#     # page.city_search.close_view()
+#     page.update()
 
 def view_main(page: ft.Page):
     state_progress = ft.ProgressBar(value=None, visible=False, width=300, height=20)
@@ -54,6 +56,7 @@ def view_main(page: ft.Page):
                 content=ft.Column([
                     ft.Text("Sua Cidade", size=30, weight=ft.FontWeight.BOLD),
                     city_progress,
+                    get_case_plot(page, city_progress)
                 ]),
                 expand=True
             ),
@@ -112,14 +115,37 @@ def get_state_case_map(page, progress):
     progress.visible = False
     return map_view
 
+def get_city_data(page):
+    """
+    Get the data for the selected city and selected disease
+    """
+    casos = get_infodengue(
+        start_date='2022-12-30',
+        end_date=date.today().isoformat(),
+        disease=page.selected_disease.lower(),
+        uf=page.selected_state,
+        geocode=page.infodengue_maps.cities[page.selected_city],
+    )
+    return casos
+
+def get_case_plot(page, progress):
+    """
+    Get the plot of cases for the selected city and selected disease
+    """
+    progress.visible = True
+    casos = get_city_data(page)
+    fig = px.line(casos.reset_index(), x='data_iniSE', y='casos_est', title=f"Casos de {page.selected_disease} em {page.selected_city}")
+    progress.visible = False
+    return PlotlyChart(fig, expand=True, isolated=True)
+
 
 def get_state_data(page):
     # Initialize Infodengue and get Brasil map
     casos = get_infodengue(
         start_date='2022-12-30',
-        end_date='2023-01-30',
-        disease='dengue',
-        uf=page.selected_state
+        end_date=date.today().isoformat(),
+        disease=page.selected_disease.lower(),
+        uf=page.selected_state,
     )
     casos = casos.groupby(['municipio_geocodigo', 'municipio_nome']).sum()
     map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
@@ -154,6 +180,7 @@ async def main(page: ft.Page):
 
     # Initialize selected state
     page.selected_state = "RJ"
+    page.selected_city = "Rio de Janeiro"
     page.selected_disease = "Dengue"
     page.state_data_cache = {}
     page.is_loading = True
@@ -164,7 +191,7 @@ async def main(page: ft.Page):
     # Create state dropdown
     state_dropdown = ft.Dropdown(
         width=200,
-        menu_height=10,
+        menu_height=200,
         dense=True,
         options=[ft.dropdown.Option(f"{state} - {name}") for state, name in STATES.items()],
         value="RJ - Rio de Janeiro",
@@ -177,23 +204,19 @@ async def main(page: ft.Page):
             state_geojson = page.infodengue_maps.get_state_geojson(new_state)
             page.selected_state = new_state
             page.city_names = page.infodengue_maps.get_city_names()
-            if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
-                switch_view(0)  # Refresh main view
+            # if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
+            switch_view(0)  # Refresh main view
     
 
     def handle_tap(e):
         page.city_search.open_view()
 
     # Initialize city search bar
-    page.city_search = ft.SearchBar(
-        # label="Cidade",
-        bar_hint_text="Digite o nome da cidade",
-        # icon=ft.Icons.SEARCH,
-        width=300,
-        on_submit=lambda e: find_city(page, e.data),
+    page.city_search = ft.Dropdown(
+        width=200,
+        dense=True,
+        options=[ft.dropdown.Option(city) for city in page.city_names],
         on_change=lambda e: find_city(page, e.data),
-        on_tap = handle_tap,
-        controls = [ft.ListTile(title=ft.Text(f"{city}"), on_click=lambda e: select_city(page, city) ) for city in page.city_names]
     )
     def change_disease(disease):
         if disease != page.selected_disease:
@@ -219,7 +242,7 @@ async def main(page: ft.Page):
             actions=[
                 state_dropdown,
                 page.city_search,
-
+                disease_dropdown,
                 ft.IconButton(ft.Icons.SETTINGS),
                 ft.IconButton(ft.Icons.HELP_OUTLINE),
             ],
