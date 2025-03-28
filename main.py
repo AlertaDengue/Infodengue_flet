@@ -154,6 +154,7 @@ async def main(page: ft.Page):
 
     # Initialize selected state
     page.selected_state = "RJ"
+    page.selected_disease = "Dengue"
     page.state_data_cache = {}
     page.is_loading = True
     await start_map_server(page)
@@ -194,10 +195,37 @@ async def main(page: ft.Page):
         on_tap = handle_tap,
         controls = [ft.ListTile(title=ft.Text(f"{city}"), on_click=lambda e: select_city(page, city) ) for city in page.city_names]
     )
+    def change_disease(disease):
+        if disease != page.selected_disease:
+            page.selected_disease = disease
+            if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
+                switch_view(0)  # Refresh main view
 
-    create_appbar(page, page.city_search, state_dropdown)
+    def create_appbar():
+        disease_dropdown = ft.Dropdown(
+            width=200,
+            dense=True,
+            options=[ft.dropdown.Option(disease) for disease in ["Dengue", "Zika", "Chikungunya"]],
+            value="Dengue",
+            on_change=lambda e: change_disease(e.data),
+        )
+        # Create the app bar
+        page.appbar = ft.AppBar(
+            leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
+            leading_width=40,
+            title=ft.Text("InfoDengue"),
+            center_title=False,
+            bgcolor=ft.Colors.BLUE_GREY,
+            actions=[
+                state_dropdown,
+                page.city_search,
 
+                ft.IconButton(ft.Icons.SETTINGS),
+                ft.IconButton(ft.Icons.HELP_OUTLINE),
+            ],
+        )
 
+    create_appbar()
 
     def switch_view(index):
         if index == 0:  # Main page
@@ -225,21 +253,7 @@ async def main(page: ft.Page):
     page.update()
 
 
-def create_appbar(page, city_search, state_dropdown):
-    # Create the app bar
-    page.appbar = ft.AppBar(
-        leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
-        leading_width=40,
-        title=ft.Text("InfoDengue"),
-        center_title=False,
-        bgcolor=ft.Colors.BLUE_GREY,
-        actions=[
-            city_search,
-            state_dropdown,
-            ft.IconButton(ft.Icons.SETTINGS),
-            ft.IconButton(ft.Icons.HELP_OUTLINE),
-        ],
-    )
+
 
 
 
