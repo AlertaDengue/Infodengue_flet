@@ -51,7 +51,7 @@ class InfodengueMaps:
             self.wfs = self._connect_wfs()
         return list(self.wfs.contents)
 
-    def get_feature(self, feature_name: str):
+    async def get_feature(self, feature_name: str):
         if self.wfs is None:
             self.wfs = self._connect_wfs()
         params = dict(service='WFS', version='2.0.0', request='GetFeature',
@@ -65,12 +65,12 @@ class InfodengueMaps:
     def get_city_names(self)->list:
         return list(self.cities.keys())
 
-    def get_state_geojson(self, state_code: str):
-        feature = self.get_feature(f"{state_code}_distritos_CD2022")
+    async def get_state_geojson(self, state_code: str):
+        feature = await self.get_feature(f"{state_code}_distritos_CD2022")
         return feature
 
-    def get_city_geojson(self, city_code: str, state_code: str='RJ'):
+    async def get_city_geojson(self, city_code: str, state_code: str='RJ'):
         if self.feature_GDF is None:
-            self.get_featureself.get_feature(f"{state_code}_distritos_CD2022")
+            await self.get_featureself.get_feature(f"{state_code}_distritos_CD2022")
         city_geojson = self.feature_GDF[self.feature_GDF['CD_MUN'] == city_code].to_json()
         return geojson.loads(city_geojson)
