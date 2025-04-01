@@ -1,18 +1,18 @@
-from typing import List
-import asyncio
-import flet as ft
-import pandas as pd
 import re
-from mosqlient import get_infodengue
-from typing import List, Optional
-import datetime
-from geodata.features import InfodengueMaps, STATES
-import geopandas as gpd
-import plotly.express as px
-import matplotlib.pyplot as plt
-from flet.plotly_chart import PlotlyChart
-from flet.matplotlib_chart import MatplotlibChart
+import time
 from datetime import date
+from typing import List
+
+import flet as ft
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
+from flet.matplotlib_chart import MatplotlibChart
+from flet.plotly_chart import PlotlyChart
+from mosqlient import get_infodengue
+
+from geodata.features import InfodengueMaps, STATES
 
 
 def find_substring_matches(query: str, strings: List[str], max_results: int = 10) -> List[str]:
@@ -42,41 +42,38 @@ def find_city(page, city_name):
         page.update()
 
 
-def select_city(page, city_name):
-    page.selected_city = city_name
-    # page.city_search.close_view()
-    page.update()
+def select_city(page, e):
+    page.selected_city = e
+    page.go('/')
+
+
+def view_loading(page: ft.Page):
+    return ft.View(
+        route="/loading",
+        controls=[
+            page.appbar,
+            ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Carregando dados..."),
+                        ft.ProgressBar(value=None, visible=True, width=300, height=20)
+                    ]
+                ),
+                expand=True
+            ),
+            page.navigation_bar
+        ]
+    )
+
 
 def view_main(page: ft.Page):
-    state_progress = ft.ProgressBar(value=None, visible=False, width=300, height=20)
-    city_progress = ft.ProgressBar(value=None, visible=False, width=300, height=20)
-    if page.is_loading:
-        return ft.View(
-            appbar=page.appbar,
-            controls=[
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Text("Carregando dados municipais..."),
-                            city_progress
-                        ]
-                    ),
-                    expand=True
-                ),
-                ft.Container(
-                    content=ft.Column(
-                        controls=[
-                            ft.Text("Carregando dados do estado..."),
-                            state_progress
-                        ]
-                    ),
-                    expand=True
-                ),
-            ]
-        )
+    state_progress = ft.ProgressBar(value=None, visible=False, height=5)
+    city_progress = ft.ProgressBar(value=None, visible=False, height=5)
+
     return ft.View(
-        appbar=page.appbar,
+        route='/',
         controls=[
+            page.appbar,
             ft.Container(
                 border=ft.border.all(1, "blue"),
                 padding=20,
@@ -107,11 +104,12 @@ def view_main(page: ft.Page):
     )
 
 
-def view_sua_cidade(page: ft.Page):
+def view_settings(page: ft.Page):
     return ft.View(
-        appbar=page.appbar,
+        route='/settings',
         controls=[
-            ft.Text("Sua cidade", size=30),
+            page.appbar,
+            ft.Text("Configurações", size=30),
             page.navigation_bar
             # Add more controls specific to "Sua cidade"
         ],
@@ -189,10 +187,11 @@ async def start_map_server(page: ft.Page):
     """
     Start the Infodengue map server client class and get the Brasil map
     """
-    page.infodengue_maps = InfodengueMaps()
-    await page.infodengue_maps.get_state_geojson(page.selected_state)
+
+    page.infodengue_maps.get_state_geojson(page.selected_state)
     page.city_names = page.infodengue_maps.get_city_names()
-    page.pr.visible = False
+    page.city_search.options = [ft.dropdown.Option(city) for city in page.city_names]
+    page.city_search.value = page.city_names[0]
     page.is_loading = False
     page.go("/")
 
@@ -200,13 +199,14 @@ async def start_map_server(page: ft.Page):
 async def main(page: ft.Page):
     page.title = "Infodengue"
     page.adaptive = True
+    page.infodengue_maps = InfodengueMaps()
     page.theme = ft.Theme(
         color_scheme_seed=ft.Colors.BLUE,
     )
     page.city_names = []
-    page.pr = ft.ProgressBar(value=None, visible=True, height=5, expand=True)  # Initialize progress bar
-    page.add(page.pr)
-    page.update()
+    # page.pr = ft.ProgressBar(value=None, visible=True, height=5)  # Initialize progress bar
+    # page.add(page.pr)
+    # page.update()
 
     # Initialize selected state
     page.selected_state = "RJ"
@@ -215,6 +215,17 @@ async def main(page: ft.Page):
     page.state_data_cache = {}
     page.is_loading = True
 
+    async def change_state(e):
+        new_state = e.data.split(" - ")[0]
+        if new_state != page.selected_state:
+            state_geojson = page.infodengue_maps.get_state_geojson(new_state)
+            page.selected_state = new_state
+            page.city_names = page.infodengue_maps.get_city_names()
+            page.selected_city = page.city_names[0]
+            fill_city_search(page)
+            # if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
+            page.go('/')  # Refresh main view
+
     # Create state dropdown
     state_dropdown = ft.Dropdown(
         width=200,
@@ -222,28 +233,22 @@ async def main(page: ft.Page):
         dense=True,
         options=[ft.dropdown.Option(f"{state} - {name}") for state, name in STATES.items()],
         value="RJ - Rio de Janeiro",
-        on_change=lambda e: change_state(e.data),
+        on_change=change_state,
     )
-
-    def change_state(new_state):
-        new_state = new_state.split(" - ")[0]
-        if new_state != page.selected_state:
-            state_geojson = page.infodengue_maps.get_state_geojson(new_state)
-            page.selected_state = new_state
-            page.city_names = page.infodengue_maps.get_city_names()
-            fill_city_search(page)
-            # if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
-            page.go('/')  # Refresh main view
-
 
     def fill_city_search(page):
         page.city_search.options = [ft.dropdown.Option(city) for city in page.city_names]
+        page.city_search.value = page.city_names[0]
+        page.city_search.enable_filter = True
+        page.update()
+
     # Initialize city search bar
     page.city_search = ft.Dropdown(
         width=200,
         dense=True,
         options=[],
-        on_change=lambda e: find_city(page, e.data),
+        enable_filter=False,
+        on_change=lambda e: select_city(page, e.data),
     )
 
     def change_disease(disease):
@@ -261,7 +266,8 @@ async def main(page: ft.Page):
             on_change=lambda e: change_disease(e.data),
         )
         # Create the app bar
-        page.appbar = ft.AppBar(
+
+        appbar = ft.AppBar(
             leading=ft.Icon(ft.Icons.CORONAVIRUS_OUTLINED),
             leading_width=40,
             title=ft.Text("InfoDengue"),
@@ -274,41 +280,57 @@ async def main(page: ft.Page):
                 ft.IconButton(ft.Icons.SETTINGS),
                 ft.IconButton(ft.Icons.HELP_OUTLINE),
             ],
-        )
+            )
+        return appbar
 
-    create_appbar()
 
-    def switch_view(index):
+    page.appbar = create_appbar()
+    page.update()
+
+    def switch_view(route):
+        print(route, page.selected_state, page.selected_city)
         page.views.clear()
-        if index == '/':  # Main page
+        page.views.append(
+            view_main(page)
+        )
+        if route == '/' and page.is_loading:
+                page.go('/loading')
+
+        elif route == '/settings':  # Settings
             page.views.append(
-                view_main(page)
+                view_settings(page)
             )
-        elif index == '/settings':  # Settings
+        elif route == '/loading':
             page.views.append(
-                view_sua_cidade()
+                view_loading(page)
             )
+
+
         page.update()
+
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Infodengue Report"),
             ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Configurações"),
         ],
-        on_change=lambda e: switch_view(e.control.selected_index)
+        on_change=lambda e: switch_view('/' if e.control.selected_index==0 else '/settings')
     )
 
-    asyncio.run(start_map_server(page))
+    page.run_task(start_map_server, page)
+
 
     def view_pop(view):
         page.views.pop()
         top_view = page.views[-1]
         page.go(top_view.route)
 
+
     # switch_view(0)
     page.on_route_change = switch_view
     page.on_view_pop = view_pop
-    page.go('/')  # Initialize with the first view
+    page.route = '/'
+    page.go(page.route)  # Initialize with the first view
 
 
 #
