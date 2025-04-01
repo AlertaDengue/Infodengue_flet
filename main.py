@@ -77,7 +77,7 @@ def view_main(page: ft.Page):
                 content=ft.Column(
                     controls=[
                         ft.Text("Sua Cidade", size=30, weight=ft.FontWeight.BOLD),
-                        get_case_plot(page))
+                        get_case_plot(page)
                     ]),
                 expand=True
             ),
@@ -87,7 +87,7 @@ def view_main(page: ft.Page):
                 content=ft.Column(
                     controls=[
                         ft.Text("Seu Estado", size=30, weight=ft.FontWeight.BOLD),
-                        get_state_case_map(page))
+                        get_state_case_map(page)
 
                     ]),
                 expand=True
@@ -130,7 +130,6 @@ def get_state_case_map(page):
     ax.set_axis_off()
     fig.tight_layout()
     map_view = MatplotlibChart(fig, expand=True, transparent=True, isolated=True)
-    progress.visible = False
     return map_view
 
 
