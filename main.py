@@ -67,9 +67,6 @@ def view_loading(page: ft.Page):
 
 
 def view_main(page: ft.Page):
-    state_progress = ft.ProgressBar(value=None, visible=page.is_loading, height=5)
-    city_progress = ft.ProgressBar(value=None, visible=page.is_loading, height=5)
-
     return ft.View(
         route='/',
         controls=[
@@ -80,8 +77,7 @@ def view_main(page: ft.Page):
                 content=ft.Column(
                     controls=[
                         ft.Text("Sua Cidade", size=30, weight=ft.FontWeight.BOLD),
-                        city_progress,
-                        get_case_plot(page, city_progress)
+                        get_case_plot(page))
                     ]),
                 expand=True
             ),
@@ -91,8 +87,7 @@ def view_main(page: ft.Page):
                 content=ft.Column(
                     controls=[
                         ft.Text("Seu Estado", size=30, weight=ft.FontWeight.BOLD),
-                        state_progress,
-                        get_state_case_map(page, state_progress)
+                        get_state_case_map(page))
 
                     ]),
                 expand=True
@@ -117,18 +112,12 @@ def view_settings(page: ft.Page):
     )
 
 
-def get_state_case_map(page, progress):
+def get_state_case_map(page):
     # Check if data is cached
     if page.selected_state not in page.state_data_cache:
-        page.is_loading = True
-        progress.visible = True
-        page.update()
         mapa = get_state_data(page)
         # Cache the processed data
         page.state_data_cache[page.selected_state] = mapa
-        page.is_loading = False
-        progress.visible = False
-        page.update()
     else:
         mapa = page.state_data_cache[page.selected_state]
     fig, ax = plt.subplots()
@@ -159,19 +148,13 @@ def get_city_data(page):
     return casos
 
 
-def get_case_plot(page, progress):
+def get_case_plot(page):
     """
     Get the plot of cases for the selected city and selected disease
     """
-    page.is_loading = True
-    progress.visible = True
-    page.update()
     casos = get_city_data(page)
     fig = px.line(casos.reset_index(), x='data_iniSE', y='casos_est',
                   title=f"Casos de {page.selected_disease} em {page.selected_city}")
-    page.is_loading = False
-    progress.visible = False
-    page.update()
     return PlotlyChart(fig, expand=True, isolated=True)
 
 
