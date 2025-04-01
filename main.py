@@ -67,8 +67,8 @@ def view_loading(page: ft.Page):
 
 
 def view_main(page: ft.Page):
-    state_progress = ft.ProgressBar(value=None, visible=False, height=5)
-    city_progress = ft.ProgressBar(value=None, visible=False, height=5)
+    state_progress = ft.ProgressBar(value=None, visible=page.is_loading, height=5)
+    city_progress = ft.ProgressBar(value=None, visible=page.is_loading, height=5)
 
     return ft.View(
         route='/',
@@ -120,10 +120,15 @@ def view_settings(page: ft.Page):
 def get_state_case_map(page, progress):
     # Check if data is cached
     if page.selected_state not in page.state_data_cache:
+        page.is_loading = True
         progress.visible = True
+        page.update()
         mapa = get_state_data(page)
         # Cache the processed data
         page.state_data_cache[page.selected_state] = mapa
+        page.is_loading = False
+        progress.visible = False
+        page.update()
     else:
         mapa = page.state_data_cache[page.selected_state]
     fig, ax = plt.subplots()
@@ -158,11 +163,15 @@ def get_case_plot(page, progress):
     """
     Get the plot of cases for the selected city and selected disease
     """
+    page.is_loading = True
     progress.visible = True
+    page.update()
     casos = get_city_data(page)
     fig = px.line(casos.reset_index(), x='data_iniSE', y='casos_est',
                   title=f"Casos de {page.selected_disease} em {page.selected_city}")
+    page.is_loading = False
     progress.visible = False
+    page.update()
     return PlotlyChart(fig, expand=True, isolated=True)
 
 
