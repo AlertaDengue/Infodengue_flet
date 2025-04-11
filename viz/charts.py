@@ -70,6 +70,7 @@ def prepare_state_container(page):
         fig.tight_layout()
         map_view = MatplotlibChart(fig, expand=True, transparent=True, isolated=True)
         cnt.content.controls.append(map_view)
+        dbutton.disabled = True
         pbar.visible = False
         page.update()
     cnt = _create_container(page, f"{page.selected_state}-{page.selected_city}-{page.selected_disease}")
@@ -112,6 +113,7 @@ def prepare_city_container(page):
         case_plot = PlotlyChart(fig, expand=True, isolated=True)
         cnt.content.controls.append(case_plot)
         pbar.visible = False
+        dbutton.disabled = True
         page.update()
     cnt = _create_container(page, f"{page.selected_city}-{page.selected_disease}")
     pbar = ft.ProgressBar(value=None, visible=True, width=300, height=10)
