@@ -111,11 +111,14 @@ async def main(page: ft.Page):
     async def change_state(e):
         new_state = e.data.split(" - ")[0]
         if new_state != page.selected_state:
+            page.pr.visible=True
+            page.update()
             state_geojson = page.infodengue_maps.get_state_geojson(new_state)
             page.selected_state = new_state
             page.city_names = page.infodengue_maps.get_city_names()
             page.selected_city = page.city_names[0]
             fill_city_search(page)
+            page.update()
             # if len(page.views) > 0 and isinstance(page.views[-1], ft.View):
             page.go('/')  # Refresh main view
 
@@ -181,8 +184,9 @@ async def main(page: ft.Page):
     page.update()
 
     def switch_view(route):
-        print(route, page.selected_state, page.selected_city)
+        # print(route, page.selected_state, page.selected_city)
         page.views.clear()
+        page.update()
         page.views.append(
             ft.View(
                 route='/',
@@ -196,10 +200,10 @@ async def main(page: ft.Page):
                 scroll=ft.ScrollMode.AUTO
             )
         )
-        if route == '/settings':  # Settings
-            page.views.append(
-                view_settings(page)
-            )
+        # if route == '/settings':  # Settings
+        #     page.views.append(
+        #         view_settings(page)
+        #     )
         page.update()
 
 
