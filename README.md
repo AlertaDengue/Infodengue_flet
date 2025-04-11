@@ -23,29 +23,36 @@ git clone https://github.com/your-repo/Infodengue_flet.git
 cd Infodengue_flet
 ```
 
-2. Create and activate a virtual environment:
+2. Install uv
+On Mac and Linux:
 ```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# or venv\Scripts\activate on Windows
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+On windows:
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-3. Install dependencies:
+
+
+3Create and activate a virtual environment:
 ```bash
-pip install -e .
+uv sync 
 ```
+
+
 
 ## Running the Application
 
 Start the application:
 ```bash
-python main.py
+uv run flet run main.py
 ```
 
 The application will:
-- Launch a local web server
-- Open in your default browser
-- Default to Rio de Janeiro (RJ) data
+- Launch the desktop application
+- Default to Rio de Janeiro data
+- You can select other states and cities using the dropdown menus
 
 ## Key Components
 
@@ -69,7 +76,7 @@ You can modify:
 
 ## Data Sources
 
-- Case data from [MOSQLient](https://github.com/AlertaDengue/MOSQLient)
+- Case data through the [MOSQLient library](https://github.com/mosqlimate-project/mosqlient)
 - Geographic data from InfoDengue WFS server
 
 ## Screenshot
