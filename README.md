@@ -35,7 +35,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 
 
-3Create and activate a virtual environment:
+3. Create and activate a virtual environment:
 ```bash
 uv sync 
 ```
