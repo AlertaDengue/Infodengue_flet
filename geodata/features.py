@@ -1,9 +1,8 @@
+import geojson
 import geopandas as gpd
 import requests
-import geojson
-from functools import lru_cache
-from pyproj import CRS
 from owslib.wfs import WebFeatureService
+
 STATES = {
     "AC": "Acre",
     "AL": "Alagoas",
@@ -33,7 +32,8 @@ STATES = {
     "SE": "Sergipe",
     "TO": "Tocantins",
     "BR": "Brasil"
- }
+}
+
 
 class InfodengueMaps:
     def __init__(self):
@@ -42,10 +42,12 @@ class InfodengueMaps:
         self.cities = {}
 
     def _connect_wfs(self):
-        return WebFeatureService(
+        self.wfs = WebFeatureService(
             url="http://info.dengue.mat.br/geoserver/wfs",
             version="2.0.0"
         )
+        return self.wfs
+
     def list_features(self):
         if self.wfs is None:
             self.wfs = self._connect_wfs()
@@ -59,17 +61,18 @@ class InfodengueMaps:
         r = requests.get(self.wfs.url, params=params)
         map_geojson = geojson.loads(r.content)
         self.feature_GDF = gpd.GeoDataFrame.from_features(map_geojson)
-        self.cities = {d['NM_MUN']:d['CD_MUN'] for d in self.feature_GDF[['NM_MUN', 'CD_MUN']].drop_duplicates().to_dict(orient='records')}
+        self.cities = {d['NM_MUN']: d['CD_MUN'] for d in
+                       self.feature_GDF[['NM_MUN', 'CD_MUN']].drop_duplicates().to_dict(orient='records')}
         return map_geojson
 
-    def get_city_names(self)->list:
+    def get_city_names(self) -> list:
         return list(self.cities.keys())
 
     def get_state_geojson(self, state_code: str):
         feature = self.get_feature(f"{state_code}_distritos_CD2022")
         return feature
 
-    def get_city_geojson(self, city_code: str, state_code: str='RJ'):
+    def get_city_geojson(self, city_code: str, state_code: str = 'RJ'):
         if self.feature_GDF is None:
             self.get_featureself.get_feature(f"{state_code}_distritos_CD2022")
         city_geojson = self.feature_GDF[self.feature_GDF['CD_MUN'] == city_code].to_json()
