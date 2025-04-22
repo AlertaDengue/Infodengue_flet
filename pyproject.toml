@@ -3,7 +3,7 @@ name = "infodengue-flet"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">3.12,<=3.13"
 dependencies = [
     "flet[all]>=0.25.1",
     "geojson>=3.2.0",
@@ -13,8 +13,8 @@ dependencies = [
     "owslib>=0.32.1",
     "plotly>=5.24.1",
     "requests>=2.32.3",
-    "kaleido==0.2.1",
-    "matplotlib>=3.10.1",
+    "kaleido==1.0.0rc11",
+    "matplotlib>=3.10",
 ]
 
 [tool.uv]
