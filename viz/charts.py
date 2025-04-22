@@ -73,7 +73,8 @@ def prepare_state_container(page):
         dbutton.disabled = True
         pbar.visible = False
         page.update()
-    cnt = _create_container(page, f"{page.selected_state}-{page.selected_city}-{page.selected_disease}")
+
+    cnt = _create_container(page, f"{page.selected_state}-Situação da {page.selected_disease}")
     pbar = ft.ProgressBar(value=None, visible=True, width=300, height=20)
     dbutton = ft.ElevatedButton(
         text="Baixar dados",
@@ -115,6 +116,7 @@ def prepare_city_container(page):
         pbar.visible = False
         dbutton.disabled = True
         page.update()
+
     cnt = _create_container(page, f"{page.selected_city}-{page.selected_disease}")
     pbar = ft.ProgressBar(value=None, visible=True, width=300, height=10)
     dbutton = ft.ElevatedButton(

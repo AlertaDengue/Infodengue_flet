@@ -1,16 +1,7 @@
 import re
-import time
-from datetime import date
 from typing import List
 
 import flet as ft
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import pandas as pd
-import plotly.express as px
-from flet.matplotlib_chart import MatplotlibChart
-from flet.plotly_chart import PlotlyChart
-from mosqlient import get_infodengue
 
 from geodata.features import InfodengueMaps, STATES
 from viz.charts import prepare_state_container, prepare_city_container
@@ -31,12 +22,6 @@ def find_substring_matches(query: str, strings: List[str], max_results: int = 10
     )
 
     return matches[:max_results]
-
-
-
-
-
-
 
 
 def view_main(page: ft.Page, statecnt, citycnt):
@@ -65,6 +50,7 @@ def view_settings(page: ft.Page):
         scroll=ft.ScrollMode.AUTO
     )
 
+
 def start_map_server(page: ft.Page):
     """
     Start the Infodengue map server client class and get the Brasil map
@@ -74,7 +60,6 @@ def start_map_server(page: ft.Page):
     page.city_search.options = [ft.dropdown.Option(city) for city in page.city_names]
     page.city_search.value = page.city_names[0]
     page.is_loading = False
-    page.pr.visible = False
     page.update()
 
 
@@ -86,9 +71,6 @@ async def main(page: ft.Page):
         color_scheme_seed=ft.Colors.BLUE,
     )
     page.city_names = []
-    page.pr = ft.ProgressBar(value=None, visible=True, height=5)  # Initialize progress bar
-    page.add(page.pr)
-    page.update()
 
     # Initialize selected state
     page.selected_state = "RJ"
@@ -98,10 +80,21 @@ async def main(page: ft.Page):
     page.city_data_cache = {}
     page.is_loading = True
 
+    # Initialize city search bar
+    page.city_search = ft.Dropdown(
+        width=200,
+        dense=True,
+        options=[],
+        enable_filter=False,
+        on_change=lambda e: select_city(page, e.data),
+    )
+
+    # page.run_thread(start_map_server, page)
+    start_map_server(page)
+
     def change_state(e):
         new_state = e.data.split(" - ")[0]
         if new_state != page.selected_state:
-            page.pr.visible=True
             page.update()
             state_geojson = page.infodengue_maps.get_state_geojson(new_state)
             page.selected_state = new_state
@@ -134,20 +127,14 @@ async def main(page: ft.Page):
     def select_city(page, e):
         page.selected_city = e
         route_change('/')
+
     def fill_city_search(page):
         page.city_search.options = [ft.dropdown.Option(city) for city in page.city_names]
         page.city_search.value = page.city_names[0]
         page.city_search.enable_filter = True
         page.update()
 
-    # Initialize city search bar
-    page.city_search = ft.Dropdown(
-        width=200,
-        dense=True,
-        options=[],
-        enable_filter=False,
-        on_change=lambda e: select_city(page, e.data),
-    )
+
 
     def change_disease(disease):
         if disease != page.selected_disease:
@@ -175,12 +162,10 @@ async def main(page: ft.Page):
                 state_dropdown,
                 page.city_search,
                 disease_dropdown,
-                ft.IconButton(ft.Icons.DRAW, tooltip= "Refresh page", on_click=lambda _: route_change('/')),
                 ft.IconButton(ft.Icons.HELP_OUTLINE),
             ],
-            )
+        )
         return appbar
-
 
     page.appbar = create_appbar()
     page.update()
@@ -207,18 +192,15 @@ async def main(page: ft.Page):
             )
         page.update()
 
-
     page.navigation_bar = ft.NavigationBar(
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.HOME, label="Infodengue Report"),
             ft.NavigationBarDestination(icon=ft.Icons.PUBLIC, label="Configurações"),
         ],
-        on_change=lambda e: route_change('/' if e.control.selected_index==0 else '/settings')
+        on_change=lambda e: route_change('/' if e.control.selected_index == 0 else '/settings')
     )
 
-
-    page.run_thread(start_map_server, page)
-    # start_map_server(page)
+    # page.run_thread(start_map_server, page)
 
 
 
@@ -226,7 +208,6 @@ async def main(page: ft.Page):
         page.views.pop()
         top_view = page.views[-1]
         page.go(top_view.route)
-
 
     # switch_view(0)
     page.on_route_change = route_change
