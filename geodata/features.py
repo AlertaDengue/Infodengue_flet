@@ -1,7 +1,10 @@
 import geojson
 import geopandas as gpd
 import requests
+import os
 from owslib.wfs import WebFeatureService
+
+APIKEY = os.environ.get("MOSQLIMATE_API")
 
 STATES = {
     "AC": "Acre",

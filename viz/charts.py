@@ -1,13 +1,16 @@
 import flet as ft
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 import plotly.express as px
 from flet.matplotlib_chart import MatplotlibChart
 from flet.plotly_chart import PlotlyChart
 from mosqlient import get_infodengue
 from datetime import date
+import os
 
+APIKEY = os.getenv("MOSQLIMATE_API")
 def _create_container(page, text=""):
     """
     Create a container for state selection and map display.
@@ -79,7 +82,7 @@ def prepare_state_container(page):
     dbutton = ft.ElevatedButton(
         text="Baixar dados",
         on_click=get_state_case_map,
-        icon=ft.icons.DOWNLOAD_FOR_OFFLINE,
+        icon=ft.Icons.DOWNLOAD_FOR_OFFLINE,
         tooltip="Baixa e plota os dados",
     )
     cnt.content.controls.append(dbutton)
@@ -94,6 +97,7 @@ def prepare_city_container(page):
             disease=page.selected_disease.lower(),
             uf=page.selected_state,
             geocode=page.infodengue_maps.cities[page.selected_city],
+            api_key=APIKEY
         )
         return casos
 
@@ -108,10 +112,21 @@ def prepare_city_container(page):
             page.city_data_cache[page.selected_city] = casos
         else:
             casos = page.city_data_cache[page.selected_city]
-
-        fig = px.line(casos.reset_index(), x='data_iniSE', y='casos_est',
-                      title=f"Casos de {page.selected_disease} em {page.selected_city}")
-        case_plot = PlotlyChart(fig, expand=True, isolated=True)
+        casos['data_iniSE'] = pd.to_datetime(casos['data_iniSE'])
+        casos.set_index('data_iniSE', inplace=True)
+        fig, ax = plt.subplots()
+        casos. casos_est.plot(ax=ax,
+                              label='Casos estimados',
+                   )
+        ax.set_xlabel('Data')
+        ax.set_ylabel("Casos estimados por semana")
+        ax.tick_params('x', rotation=30)
+        # ax.xaxis.set_major_formatter(
+        #     mdates.ConciseDateFormatter(ax.xaxis.get_major_locator()))
+        case_plot = MatplotlibChart(fig, expand=True, transparent=True, isolated=True)
+        # fig = px.line(casos.reset_index(), x='data_iniSE', y='casos_est',
+        #               title=f"Casos de {page.selected_disease} em {page.selected_city}")
+        # case_plot = PlotlyChart(fig, expand=True, isolated=True)
         cnt.content.controls.append(case_plot)
         pbar.visible = False
         dbutton.disabled = True
@@ -122,7 +137,7 @@ def prepare_city_container(page):
     dbutton = ft.ElevatedButton(
         text="Baixar dados",
         on_click=get_case_plot,
-        icon=ft.icons.DOWNLOAD_FOR_OFFLINE,
+        icon=ft.Icons.DOWNLOAD_FOR_OFFLINE,
         tooltip="Baixa e plota os dados",
     )
     cnt.content.controls.append(dbutton)

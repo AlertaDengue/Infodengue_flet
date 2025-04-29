@@ -1,8 +1,6 @@
 import re
 from typing import List
-
 import flet as ft
-
 from geodata.features import InfodengueMaps, STATES
 from viz.charts import prepare_state_container, prepare_city_container
 
