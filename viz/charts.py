@@ -37,6 +37,7 @@ def prepare_state_container(page):
             end_date=date.today().isoformat(),
             disease=page.selected_disease.lower(),
             uf=page.selected_state,
+            api_key=APIKEY
         )
         casos = casos.groupby(['municipio_geocodigo', 'municipio_nome']).sum()
         map_geojson = page.infodengue_maps.get_feature(f"{page.selected_state}_distritos_CD2022")
